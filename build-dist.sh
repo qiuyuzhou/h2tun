@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# https://www.digitalocean.com/community/tutorials/how-to-build-go-executables-for-multiple-platforms-on-ubuntu-16-04
+
 rm -rf ./dist
 mkdir ./dist
 
