@@ -3,7 +3,7 @@
 ## Intro
 
 [h2tun](https://github.com/qiuyuzhou/h2tun) is a tunnel program over http/2 protocol,
-which has been developed as a plugin for shadowsokcs. Its approach is similar to trojan,
+which has been developed as a plugin for shadowsocks. Its approach is similar to trojan,
 but it is just a tcp tunnel over http/2, there is no proxy feature.
 
 ## Features
