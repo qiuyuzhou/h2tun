@@ -1,4 +1,4 @@
-package client
+package h2tun
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"golang.org/x/net/http2"
 )
 
-type Plugin struct {
+type Client struct {
 	Logger             *zap.Logger
 	FromAddr           string
 	ToAddr             string
@@ -26,7 +26,7 @@ type Plugin struct {
 	httpClient *h2conn.Client
 }
 
-func (p *Plugin) Serve(ctx context.Context) (err error) {
+func (p *Client) Serve(ctx context.Context) (err error) {
 	if p.UseTLS {
 		p.toURL = fmt.Sprintf("https://%s%s", p.ToAddr, p.Path)
 	} else {
@@ -87,7 +87,7 @@ func (p *Plugin) Serve(ctx context.Context) (err error) {
 	}
 }
 
-func (p *Plugin) handleConn(ctx context.Context, fromConn net.Conn) {
+func (p *Client) handleConn(ctx context.Context, fromConn net.Conn) {
 	defer fromConn.Close()
 
 	toConn, resp, err := p.httpClient.Connect(ctx, p.toURL)

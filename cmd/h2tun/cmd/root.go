@@ -16,8 +16,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/qiuyuzhou/h2tun/internal/app/client"
-	"github.com/qiuyuzhou/h2tun/internal/app/server"
+	"github.com/qiuyuzhou/h2tun/internal/app/h2tun"
 	"github.com/qiuyuzhou/h2tun/internal/pkg/env"
 )
 
@@ -43,7 +42,7 @@ var logger *zap.Logger
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "h2tun",
-	Short: "A brief description of your application",
+	Short: "HTTP/2 tunnel - A plugin for shadowsocks",
 	// 	Long: `A longer description that spans multiple lines and likely contains
 	// examples and usage of using your application. For example:
 
@@ -67,7 +66,7 @@ var rootCmd = &cobra.Command{
 				cancel()
 			}()
 
-			plugin := &server.Plugin{
+			plugin := &h2tun.Server{
 				Logger:   logger,
 				FromAddr: env.ConcatHostPort(remoteHost, remotePort),
 				ToAddr:   env.ConcatHostPort(localHost, localPort),
@@ -95,7 +94,7 @@ var rootCmd = &cobra.Command{
 				cancel()
 			}()
 
-			plugin := &client.Plugin{
+			plugin := &h2tun.Client{
 				Logger:   logger,
 				FromAddr: env.ConcatHostPort(localHost, localPort),
 				ToAddr:   env.ConcatHostPort(remoteHost, remotePort),

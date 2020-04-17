@@ -1,4 +1,4 @@
-package server
+package h2tun
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"golang.org/x/net/http2/h2c"
 )
 
-type Plugin struct {
+type Server struct {
 	Logger   *zap.Logger
 	FromAddr string
 	ToAddr   string
@@ -24,7 +24,7 @@ type Plugin struct {
 	CertFile string
 }
 
-func (p *Plugin) Serve(ctx context.Context) (err error) {
+func (p *Server) Serve(ctx context.Context) (err error) {
 	serveTLS := (p.KeyFile != "" && p.CertFile != "")
 
 	p.Logger.Info(
@@ -78,7 +78,7 @@ func (p *Plugin) Serve(ctx context.Context) (err error) {
 	return
 }
 
-func (p *Plugin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (p *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fromConn, err := h2conn.Accept(w, r)
 	if err != nil {
 		p.Logger.Sugar().Warnf("Failed creating full duplex connection from %s: %s", r.RemoteAddr, err)
