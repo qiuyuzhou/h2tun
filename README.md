@@ -19,7 +19,7 @@ Shared Options:
 
 | Name | Description |
 | --- | --- |
-| path | Specify a handle path for tunnel. Default is /h2tunnel. You should always change it to a secret value. |
+| path={value} | Specify a handle path for tunnel. Default is `/h2tunnel`. You should always specify a secret value. |
 
 Client Mode Options:
 
@@ -32,8 +32,8 @@ Server Mode Options:
 | Name | Description |
 | --- | --- |
 | server | Run in serve mode. Otherwise run in client mode.|
-| keyFile | The tls cert key file path. |
-| certFile | The tls cert file. |
+| keyFile={value} | The tls cert key file path. |
+| certFile={value} | The tls cert file. |
 
 ## Deployment
 
