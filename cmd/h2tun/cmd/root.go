@@ -37,6 +37,8 @@ var remotePort uint16
 var keyFile string
 var certFile string
 
+var webRoot string
+
 var logger *zap.Logger
 
 // rootCmd represents the base command when called without any subcommands
@@ -73,6 +75,7 @@ var rootCmd = &cobra.Command{
 				Path:     tunnelPath,
 				KeyFile:  keyFile,
 				CertFile: certFile,
+				WebRoot:  webRoot,
 			}
 
 			err := plugin.Serve(ctx)
@@ -211,5 +214,9 @@ func overideFromEnv() {
 
 	if v, ok := args.Get("certFile"); ok {
 		certFile = v
+	}
+
+	if v, ok := args.Get("webRoot"); ok {
+		webRoot = v
 	}
 }

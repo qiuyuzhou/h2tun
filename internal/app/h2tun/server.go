@@ -22,6 +22,7 @@ type Server struct {
 
 	KeyFile  string
 	CertFile string
+	WebRoot  string
 }
 
 func (p *Server) Serve(ctx context.Context) (err error) {
@@ -34,11 +35,16 @@ func (p *Server) Serve(ctx context.Context) (err error) {
 		zap.String("path", p.Path),
 		zap.String("keyFile", p.KeyFile),
 		zap.String("certFile", p.CertFile),
+		zap.String("webRoot", p.WebRoot),
 		zap.Bool("serveTLS", serveTLS),
 	)
 
 	mux := http.NewServeMux()
 	mux.Handle(p.Path, p)
+
+	if p.WebRoot != "" {
+		mux.Handle("/", http.FileServer(http.Dir(p.WebRoot)))
+	}
 
 	var handler http.Handler
 
