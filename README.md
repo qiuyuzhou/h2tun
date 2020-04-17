@@ -13,7 +13,7 @@ but it is just a tcp tunnel over http/2, there is no proxy feature.
 
 ## Usage
 
-The possible options can pass to env var `SS_PLUGIN_OPTIONS`.
+The possible options can pass to the env var `SS_PLUGIN_OPTIONS`.
 
 Shared Options:
 
@@ -33,7 +33,7 @@ Server Mode Options:
 | --- | --- |
 | server | Run in serve mode. Otherwise run in client mode.|
 | keyFile={value} | The tls cert key file path. |
-| certFile={value} | The tls cert file. |
+| certFile={value} | The tls cert file path. |
 
 ## Deployment
 
