@@ -1,1 +1,1 @@
-# HTTP/2 tunnel - A shadowsocks SIP003 plugin
+# HTTP/2 tunnel - A plugin for shadowsocks
