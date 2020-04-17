@@ -1,5 +1,5 @@
 /*
-Copyright © 2020 QiuYuzhou <charlie@shundaojia.com>
+Copyright © 2020 QiuYuzhou <qiuyuzhou@gmail.com>
 
 */
 package main
