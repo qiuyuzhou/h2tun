@@ -81,6 +81,7 @@ func (p *Client) Serve(ctx context.Context) (err error) {
 	for {
 		conn, _err := ln.Accept()
 		if _err != nil {
+			err = _err
 			return
 		}
 		go p.handleConn(ctx, conn)

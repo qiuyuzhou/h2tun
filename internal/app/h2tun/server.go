@@ -72,6 +72,9 @@ func (p *Server) Serve(ctx context.Context) (err error) {
 	} else {
 		err = srv.ListenAndServe()
 	}
+	if err != nil {
+		return
+	}
 
 	wg.Wait()
 
