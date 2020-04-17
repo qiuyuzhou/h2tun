@@ -110,9 +110,11 @@ func (p *Plugin) handleConn(ctx context.Context, fromConn net.Conn) {
 	wg.Add(2)
 	go func() {
 		io.Copy(fromConn, toConn)
+		toConn.Close()
 	}()
 	go func() {
 		io.Copy(toConn, fromConn)
+		fromConn.Close()
 	}()
 
 	wg.Wait()

@@ -98,9 +98,11 @@ func (p *Plugin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wg.Add(2)
 	go func() {
 		io.Copy(fromConn, toConn)
+		toConn.Close()
 	}()
 	go func() {
 		io.Copy(toConn, fromConn)
+		fromConn.Close()
 	}()
 
 	wg.Wait()
