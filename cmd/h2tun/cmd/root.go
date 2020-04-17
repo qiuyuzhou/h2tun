@@ -7,6 +7,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -20,6 +21,10 @@ import (
 	"github.com/qiuyuzhou/h2tun/internal/pkg/env"
 )
 
+var version = "undefined"
+
+var isDebug bool
+var fastOpen bool
 var useTLSInClient bool
 var inServerMode bool
 var tunnelPath string
@@ -47,7 +52,64 @@ var rootCmd = &cobra.Command{
 	// to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {
+		if inServerMode {
+			logger.Info("Run in server mode...")
+
+			ctx, cancel := context.WithCancel(context.Background())
+
+			signals := make(chan os.Signal, 1)
+			signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
+
+			go func() {
+				_ = <-signals
+				signal.Stop(signals)
+				cancel()
+			}()
+
+			plugin := &server.Plugin{
+				Logger:   logger,
+				FromAddr: env.ConcatHostPort(remoteHost, remotePort),
+				ToAddr:   env.ConcatHostPort(localHost, localPort),
+				Path:     tunnelPath,
+				KeyFile:  keyFile,
+				CertFile: certFile,
+			}
+
+			err := plugin.Serve(ctx)
+			if err != nil && err != http.ErrServerClosed {
+				logger.Error("plugin shutdown with error", zap.Error(err))
+			}
+
+		} else {
+			logger.Info("Run in client mode...")
+
+			ctx, cancel := context.WithCancel(context.Background())
+
+			signals := make(chan os.Signal, 1)
+			signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
+
+			go func() {
+				_ = <-signals
+				signal.Stop(signals)
+				cancel()
+			}()
+
+			plugin := &client.Plugin{
+				Logger:   logger,
+				FromAddr: env.ConcatHostPort(localHost, localPort),
+				ToAddr:   env.ConcatHostPort(remoteHost, remotePort),
+				Path:     tunnelPath,
+				UseTLS:   useTLSInClient,
+			}
+
+			err := plugin.Serve(ctx)
+			if err != nil {
+				logger.Error("plugin shutdown with error", zap.Error(err))
+			}
+		}
+		logger.Sync()
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -57,69 +119,14 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
-	if inServerMode {
-		ctx, cancel := context.WithCancel(context.Background())
-
-		signals := make(chan os.Signal, 1)
-		signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
-
-		go func() {
-			_ = <-signals
-			signal.Stop(signals)
-			cancel()
-		}()
-
-		plugin := &server.Plugin{
-			Logger:   logger,
-			FromAddr: env.ConcatHostPort(remoteHost, remotePort),
-			ToAddr:   env.ConcatHostPort(localHost, localPort),
-			Path:     tunnelPath,
-			KeyFile:  keyFile,
-			CertFile: certFile,
-		}
-
-		err := plugin.Serve(ctx)
-		if err != nil {
-			logger.Error("plugin shutdown with error", zap.Error(err))
-		}
-
-	} else {
-		ctx, cancel := context.WithCancel(context.Background())
-
-		signals := make(chan os.Signal, 1)
-		signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
-
-		go func() {
-			_ = <-signals
-			signal.Stop(signals)
-			cancel()
-		}()
-
-		plugin := &client.Plugin{
-			Logger:   logger,
-			FromAddr: env.ConcatHostPort(remoteHost, remotePort),
-			ToAddr:   env.ConcatHostPort(localHost, localPort),
-			Path:     tunnelPath,
-			UseTLS:   useTLSInClient,
-		}
-
-		err := plugin.Serve(ctx)
-		if err != nil {
-			logger.Error("plugin shutdown with error", zap.Error(err))
-		}
-	}
-	logger.Sync()
 }
 
 func init() {
+	rootCmd.Version = version
+
 	logger = zap.NewNop()
 	cobra.OnInitialize(initLogger)
 	cobra.OnInitialize(overideFromEnv)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
 
 	rootCmd.PersistentFlags().BoolVarP(&inServerMode, "server", "s", false, "Run in server mode")
 	rootCmd.PersistentFlags().StringVarP(&tunnelPath, "path", "p", "/h2tunnel", "Handle tunnel at the path")
@@ -128,6 +135,8 @@ func init() {
 	rootCmd.PersistentFlags().Uint16Var(&localPort, "local-port", 18086, "")
 	rootCmd.PersistentFlags().StringVar(&remoteHost, "remote-host", "127.0.0.1", "")
 	rootCmd.PersistentFlags().Uint16Var(&remotePort, "remote-port", 18096, "")
+	rootCmd.PersistentFlags().BoolVar(&fastOpen, "fast-open", false, "Enable TCP fast open.")
+	rootCmd.PersistentFlags().BoolVar(&isDebug, "debug", false, "Enable debug mode.")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -135,9 +144,20 @@ func init() {
 }
 
 func initLogger() {
-	config := zap.NewDevelopmentConfig()
-	_logger, err := config.Build()
-	if err != nil {
+	if isDebug {
+		config := zap.NewDevelopmentConfig()
+		_logger, err := config.Build()
+		if err != nil {
+			panic("failed to initial logger")
+		}
+		logger = _logger
+	} else {
+		config := zap.NewProductionConfig()
+		config.Encoding = "console"
+		_logger, err := config.Build()
+		if err != nil {
+			panic("failed to initial logger")
+		}
 		logger = _logger
 	}
 }
@@ -176,6 +196,10 @@ func overideFromEnv() {
 
 	if _, ok := args.Get("server"); ok {
 		inServerMode = true
+	}
+
+	if _, ok := args.Get("debug"); ok {
+		isDebug = true
 	}
 
 	if v, ok := args.Get("path"); ok {

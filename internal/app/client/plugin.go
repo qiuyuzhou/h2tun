@@ -23,7 +23,6 @@ type Plugin struct {
 	InsecureSkipVerify bool
 
 	toURL      string
-	listener   net.Listener
 	httpClient *h2conn.Client
 }
 
@@ -34,11 +33,35 @@ func (p *Plugin) Serve(ctx context.Context) (err error) {
 		p.toURL = fmt.Sprintf("http://%s%s", p.ToAddr, p.Path)
 	}
 
+	p.Logger.Info(
+		"Start serving...",
+		zap.String("fromAddr", p.FromAddr),
+		zap.String("toAddr", p.ToAddr),
+		zap.String("path", p.Path),
+		zap.Bool("useTLS", p.UseTLS),
+		zap.String("toURL", p.toURL),
+	)
+
+	var transport *http2.Transport
+	if p.UseTLS {
+		transport = &http2.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: p.InsecureSkipVerify,
+			},
+		}
+	} else {
+		transport = &http2.Transport{
+			AllowHTTP: true,
+			// Workaround to get the golang standard http2 client to connect to an H2C enabled server
+			DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
+				return net.Dial(network, addr)
+			},
+		}
+	}
+
 	client := &h2conn.Client{
 		Client: &http.Client{
-			Transport: &http2.Transport{TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: p.InsecureSkipVerify,
-			}},
+			Transport: transport,
 		},
 	}
 	p.httpClient = client
@@ -47,12 +70,18 @@ func (p *Plugin) Serve(ctx context.Context) (err error) {
 	if err != nil {
 		p.Logger.Sugar().Fatalf("Failed to listen on the addr: %s", p.FromAddr)
 	}
-	p.listener = ln
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			ln.Close()
+		}
+	}()
 
 	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			p.Logger.Sugar().Fatalf("Failed to accept connection from addr: %s", p.FromAddr)
+		conn, _err := ln.Accept()
+		if _err != nil {
+			return
 		}
 		go p.handleConn(ctx, conn)
 	}
@@ -63,7 +92,11 @@ func (p *Plugin) handleConn(ctx context.Context, fromConn net.Conn) {
 
 	toConn, resp, err := p.httpClient.Connect(ctx, p.toURL)
 	if err != nil {
-		p.Logger.Sugar().Warnf("Failed to connect to: %s", p.toURL)
+		p.Logger.Warn(
+			"Failed to connect to server",
+			zap.String("url", p.toURL),
+			zap.Error(err),
+		)
 		return
 	}
 	defer toConn.Close()
@@ -83,8 +116,4 @@ func (p *Plugin) handleConn(ctx context.Context, fromConn net.Conn) {
 	}()
 
 	wg.Wait()
-}
-
-func (p *Plugin) Close() {
-	p.listener.Close()
 }

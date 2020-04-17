@@ -6,9 +6,12 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/posener/h2conn"
 	"go.uber.org/zap"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 type Plugin struct {
@@ -19,21 +22,60 @@ type Plugin struct {
 
 	KeyFile  string
 	CertFile string
-
-	srv *http.Server
 }
 
 func (p *Plugin) Serve(ctx context.Context) (err error) {
+	serveTLS := (p.KeyFile != "" && p.CertFile != "")
+
+	p.Logger.Info(
+		"Start serving...",
+		zap.String("fromAddr", p.FromAddr),
+		zap.String("toAddr", p.ToAddr),
+		zap.String("path", p.Path),
+		zap.String("keyFile", p.KeyFile),
+		zap.String("certFile", p.CertFile),
+		zap.Bool("serveTLS", serveTLS),
+	)
+
 	mux := http.NewServeMux()
 	mux.Handle(p.Path, p)
-	srv := &http.Server{Addr: p.FromAddr, Handler: mux}
-	p.srv = srv
 
-	if p.KeyFile != "" && p.CertFile != "" {
-		return srv.ListenAndServeTLS(p.CertFile, p.KeyFile)
+	var handler http.Handler
+
+	if serveTLS {
+		handler = mux
+	} else {
+		// Enable h2c
+		h2s := &http2.Server{}
+		handler = h2c.NewHandler(mux, h2s)
 	}
 
-	return srv.ListenAndServe()
+	srv := &http.Server{
+		Addr:    p.FromAddr,
+		Handler: handler,
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		select {
+		case <-ctx.Done():
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			srv.Shutdown(ctx)
+		}
+	}()
+
+	if serveTLS {
+		err = srv.ListenAndServeTLS(p.CertFile, p.KeyFile)
+	} else {
+		err = srv.ListenAndServe()
+	}
+
+	wg.Wait()
+
+	return
 }
 
 func (p *Plugin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -62,8 +104,4 @@ func (p *Plugin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	wg.Wait()
-}
-
-func (p *Plugin) Close() {
-	p.srv.Close()
 }

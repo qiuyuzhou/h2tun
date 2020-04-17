@@ -21,7 +21,7 @@ tasks:
 
   build:
     cmds:
-      - go build -ldflags "-X main.version={{.GIT_COMMIT}}" -o ./h2tun ./cmd/h2tun
+      - go build -ldflags "-X 'github.com/qiuyuzhou/h2tun/cmd/h2tun/cmd.version={{.GIT_COMMIT}}'" -o ./h2tun ./cmd/h2tun
 
   clean:
     cmds:
