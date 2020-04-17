@@ -1,4 +1,4 @@
 /.vscode
-/h2tun
+/h2tun*
 /dist
 /Taskfile.yml
