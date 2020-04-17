@@ -6,7 +6,7 @@ mkdir ./dist
 VER=`git describe --tags --always --long`
 echo Version: $VER
 
-platforms=("windows/amd64" "darwin/amd64" "linux/amd64")
+platforms=("darwin/amd64" "linux/amd64" "linux/386" "windows/amd64" "windows/386")
 for platform in "${platforms[@]}"
 do
     platform_split=(${platform//\// })
