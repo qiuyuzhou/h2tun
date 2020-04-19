@@ -22,6 +22,7 @@ import (
 
 var version = "undefined"
 
+var isVerbose bool
 var isDebug bool
 var fastOpen bool
 var useTLSInClient bool
@@ -156,6 +157,8 @@ func initLogger() {
 	} else {
 		config := zap.NewProductionConfig()
 		config.Encoding = "console"
+		config.DisableCaller = true
+		config.EncoderConfig = zap.NewDevelopmentEncoderConfig()
 		_logger, err := config.Build()
 		if err != nil {
 			panic("failed to initial logger")
