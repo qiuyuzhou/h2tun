@@ -38,12 +38,12 @@ Server Mode Options:
 ## Deployment
 
 Recommend to deply a `http reverse proxy` in front of the server.
-The `http reverse proxy` should support proxy to backend by `h2c`.
+The `http reverse proxy` should support proxy to upsream by `h2c`.
 
 * [Apache Tttp Server](https://httpd.apache.org/) with mod_http2
 * [Traefik](https://docs.traefik.io/)
 
-`ss-local <--[ss]--> h2tun <--[h2]--> http reverse proxy <--[h2c]--> h2tun <--[ss]--> ss-server`
+`h2tun <--[h2]--> http reverse proxy <--[h2c]--> h2tun`
 
 * `h2` is HTTP/2 over TLS (protocol negotiation via ALPN).
 * `h2c` is HTTP/2 over TCP.
