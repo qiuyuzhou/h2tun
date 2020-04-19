@@ -22,7 +22,6 @@ import (
 
 var version = "undefined"
 
-var isVerbose bool
 var isDebug bool
 var fastOpen bool
 var useTLSInClient bool
